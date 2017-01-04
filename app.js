@@ -1,6 +1,15 @@
+var cool = require('cool-ascii-faces');
 var express = require('express');
-
 var app = express();
+
+app.set('port', (process.env.PORT || 5000));
+
+app.use(express.static(__dirname + '/public'));
+
+// views is directory for all template files
+app.set('views', __dirname + '/views');
+app.set('view engine', 'ejs');
+
 
 var bodyParser = require('body-parser');
 
@@ -117,7 +126,5 @@ app.post('/login', function(req, res){
 	        }
 	    });  
 	}
-
-	//SELECT * FROM cartao_virtual.User WHERE username = 'victor' and password = '123456';
 	
 });
