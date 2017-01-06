@@ -215,8 +215,7 @@ app.post('/authenticate', function(req, res){
 });
 
 
-var port = process.env.PORT || 8084;
-//var port = 8084;
+var port = process.env.PORT || 8080;
 app.listen(port, function(){
 	console.log('Listening on ' + port);
 });
