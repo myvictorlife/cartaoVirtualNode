@@ -114,6 +114,36 @@ app.post('/users', function(req, res){
 
 });
 
+// Tags
+
+app.get('/tags', function(req, res){
+
+      var objBD = BD();
+      objBD.query('SELECT * FROM cartao_virtual.Tag', function(err, rows) {
+        if (err)
+          res.json(error);
+        else
+          res.json(rows);
+      });
+});
+
+
+app.get('/tags/:id', function(req, res){
+   
+   var objBD = BD();
+   var id = req.param('id');
+
+   objBD.query('SELECT * FROM cartao_virtual.Tag WHERE id = ?', id, function(error, user) {
+        if (error) {
+            res.json(error);
+        } else {
+            res.json(user);    
+        }
+    });
+
+});
+
+
 app.post('/tags', function(req, res){
 
    var objBD = BD();
