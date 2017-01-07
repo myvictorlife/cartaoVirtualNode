@@ -266,4 +266,11 @@ app.post('/tags', function(req, res){
 var port = process.env.PORT || 8080;
 app.listen(port, function(){
 	console.log('Listening on ' + port);
+});]
+
+app.options(/\.*/, function (req, res, next) {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Headers", "X-Requested-With, Content-Type");
+    res.header('Access-Control-Allow-Methods', 'GET, POST, DELETE, PUT');
+    res.send(200);
 });
