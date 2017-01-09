@@ -79,33 +79,33 @@ app.post('/api/authenticate', function(req, res){
 });
 
 // middleware para validar o Token
-app.use((req, res, next) => {
-  // Aqui vamos verificar o header da requisição, os parametros e o corpo da requisição, procurando o token
-  var token = req.body.token || req.query.token || req.headers['x-access-token']
+// app.use((req, res, next) => {
+//   // Aqui vamos verificar o header da requisição, os parametros e o corpo da requisição, procurando o token
+//   var token = req.body.token || req.query.token || req.headers['x-access-token']
 
-  // Se o token existir
-  if (token) {
-    // Verificamos se o token está batendo com a nossa Secret
-    jwt.verify(token, app.get('superSecret'), (err, decoded) => {
-      if (err) {
-        return res.json({
-          success: false,
-          message: 'A autenticação com o token falhou.'
-        })
-      } else {
-        // Se o token estiver válido, então salvamos ele e liberamos o acesso, fazemos o trabalho do porteiro de um prédio aqui.
-        req.decoded = decoded
-        next()
-      }
-    })
-  } else {
-    // Se quem requisitou não informou o token, devolvemos um erro para ele.
-    return res.status(403).send({
-      success: false,
-      message: 'Nenhum token foi informado.'
-    })
-  }
-});
+//   // Se o token existir
+//   if (token) {
+//     // Verificamos se o token está batendo com a nossa Secret
+//     jwt.verify(token, app.get('superSecret'), (err, decoded) => {
+//       if (err) {
+//         return res.json({
+//           success: false,
+//           message: 'A autenticação com o token falhou.'
+//         })
+//       } else {
+//         // Se o token estiver válido, então salvamos ele e liberamos o acesso, fazemos o trabalho do porteiro de um prédio aqui.
+//         req.decoded = decoded
+//         next()
+//       }
+//     })
+//   } else {
+//     // Se quem requisitou não informou o token, devolvemos um erro para ele.
+//     return res.status(403).send({
+//       success: false,
+//       message: 'Nenhum token foi informado.'
+//     })
+//   }
+// });
 
 // Uses
 //***************************************************************************************************
