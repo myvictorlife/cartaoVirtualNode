@@ -78,7 +78,7 @@ app.post('/api/authenticate', function(req, res){
   
 });
 
-middleware para validar o Token
+// middleware para validar o Token
 app.use((req, res, next) => {
   // Aqui vamos verificar o header da requisição, os parametros e o corpo da requisição, procurando o token
   var token = req.body.token || req.query.token || req.headers['x-access-token']
