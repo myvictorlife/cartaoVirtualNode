@@ -57,18 +57,14 @@ app.post('/api/authenticate', function(req, res){
               res.json(error);
           } else {
             if(user[0]){
-                // Se não tiver nenhum erro, então criamos o Token para ele
-                console.log(user[0]);
+                // Se não tiver nenhum erro, então criamos o Token para ele              
                 var token = jwt.sign(user[0], app.get('superSecret'), {
                   expiresIn: '1440m'
                 }); // Aqui dizemos que o Token expira em 1440 minutos (24 hrs)
+                user[0].token = token;
 
                 // Retornamos um json dizendo que deu certo junto com o seu Token
-                res.json({
-                  success: true,
-                  message: 'Aproveite seu token!',
-                  token: token
-                });
+                res.json(user[0]);
             } else{
                 res.json({
                           success: false,
@@ -82,34 +78,34 @@ app.post('/api/authenticate', function(req, res){
   
 });
 
-// middleware para validar o Token
-// app.use((req, res, next) => {
-//   // Aqui vamos verificar o header da requisição, os parametros e o corpo da requisição, procurando o token
-//   var token = req.body.token || req.query.token || req.headers['x-access-token']
+middleware para validar o Token
+app.use((req, res, next) => {
+  // Aqui vamos verificar o header da requisição, os parametros e o corpo da requisição, procurando o token
+  var token = req.body.token || req.query.token || req.headers['x-access-token']
 
-//   // Se o token existir
-//   if (token) {
-//     // Verificamos se o token está batendo com a nossa Secret
-//     jwt.verify(token, app.get('superSecret'), (err, decoded) => {
-//       if (err) {
-//         return res.json({
-//           success: false,
-//           message: 'A autenticação com o token falhou.'
-//         })
-//       } else {
-//         // Se o token estiver válido, então salvamos ele e liberamos o acesso, fazemos o trabalho do porteiro de um prédio aqui.
-//         req.decoded = decoded
-//         next()
-//       }
-//     })
-//   } else {
-//     // Se quem requisitou não informou o token, devolvemos um erro para ele.
-//     return res.status(403).send({
-//       success: false,
-//       message: 'Nenhum token foi informado.'
-//     })
-//   }
-// });
+  // Se o token existir
+  if (token) {
+    // Verificamos se o token está batendo com a nossa Secret
+    jwt.verify(token, app.get('superSecret'), (err, decoded) => {
+      if (err) {
+        return res.json({
+          success: false,
+          message: 'A autenticação com o token falhou.'
+        })
+      } else {
+        // Se o token estiver válido, então salvamos ele e liberamos o acesso, fazemos o trabalho do porteiro de um prédio aqui.
+        req.decoded = decoded
+        next()
+      }
+    })
+  } else {
+    // Se quem requisitou não informou o token, devolvemos um erro para ele.
+    return res.status(403).send({
+      success: false,
+      message: 'Nenhum token foi informado.'
+    })
+  }
+});
 
 // Uses
 //***************************************************************************************************
@@ -167,7 +163,7 @@ app.post('/users', function(req, res){
       flag_updated: null,
       created_date: new Date(), 
       user_created: req.body.username,
-      user_updated: null,
+      user_updated: null
     };
 
     var objBD = BD();
