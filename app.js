@@ -59,7 +59,7 @@ app.post('/api/authenticate', function(req, res){
     var objBD = BD();
    
 
-      objBD.query('SELECT * FROM cartao_virtual.User WHERE username = ? and password = ? and u.card_id = c.id', [username, password], function(error, user) {
+      objBD.query('SELECT * FROM FROM cartao_virtual.User u, cartao_virtual.Card c WHERE u.username = ? and u.password = ? and u.card_id = c.id', [username, password], function(error, user) {
           if (error) {
               res.json(error);
           } else {
