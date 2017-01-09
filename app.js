@@ -139,7 +139,7 @@ app.get('/users/:id', function(req, res){
    var id = req.param('id');
    
    objBD.query('SELECT * FROM cartao_virtual.User u, cartao_virtual.Card c where u.id = ? and u.card_id = c.id', id, function(error, user) {
-        console.log(user[0].card_id);
+        
         if (error) {
             res.json(error);
         } else {
