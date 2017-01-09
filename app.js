@@ -44,6 +44,7 @@ app.get('/', function(req, res){
 // route to authenticate a user (POST http://****:*****/api/authenticate)
 app.post('/api/authenticate', function(req, res){
 
+  console.log("authenticate");
   var username = req.body.username;
   var password = req.body.password;
 
@@ -117,7 +118,7 @@ app.post('/api/authenticate', function(req, res){
 // Uses
 //***************************************************************************************************
 app.get('/users', function(req, res){
-
+    console.log("users get all");
     var objBD = BD();
 
      var jsonUser = {};
@@ -134,7 +135,7 @@ app.get('/users', function(req, res){
 
 
 app.get('/users/:id', function(req, res){
-   
+  console.log("user get id");
    var objBD = BD();
    var id = req.param('id');
    
@@ -151,7 +152,7 @@ app.get('/users/:id', function(req, res){
 
 
 app.post('/users', function(req, res){
-
+  console.log("user post");
    var postUser = {
       username: req.body.username,
       password: req.body.password,
@@ -214,13 +215,14 @@ app.post('/users', function(req, res){
 
 
 app.delete('/users/:id', function(req, res){
+  console.log("user delete");
    res.end('Servidor ON! delete');
 });
 
 // Tags
 //***************************************************************************************************
 app.get('/tags', function(req, res){
-
+      console.log("tag get all");
       var objBD = BD();
       objBD.query('SELECT * FROM cartao_virtual.Tag', function(err, rows) {
         if (err)
@@ -232,7 +234,7 @@ app.get('/tags', function(req, res){
 
 
 app.get('/tags/:id', function(req, res){
-   
+  console.log("tag get id");
    var objBD = BD();
    var id = req.param('id');
 
@@ -248,7 +250,7 @@ app.get('/tags/:id', function(req, res){
 
 
 app.post('/tags', function(req, res){
-
+  console.log("tag get post");
    var objBD = BD();
    var post = {
         name: req.body.name
