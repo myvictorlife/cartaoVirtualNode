@@ -37,10 +37,6 @@ app.get('/', function(req, res){
 // route to authenticate a user (POST http://****:*****/api/authenticate)
 app.post('/api/authenticate', function(req, res){
 
-  res.header("Access-Control-Allow-Origin", "*");
-    res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept"); 
-    res.writeHead(200, {'Content-Type': 'text/plain'});
-
   var username = req.body.username;
   var password = req.body.password;
 
@@ -273,11 +269,11 @@ app.options(/\.*/, function (req, res, next) {
     res.header("Access-Control-Allow-Headers", "X-Requested-With, Content-Type");
     res.header('Access-Control-Allow-Methods', 'GET, POST, DELETE, PUT');
     res.send(200);
-
 });
 
 app.all('/*', function(req, res, next) {
   res.header("Access-Control-Allow-Origin", "*");
-  res.header("Access-Control-Allow-Headers", "X-Requested-With");
+  res.header("Access-Control-Allow-Headers", "X-Requested-With, Content-Type");
+  res.header('Access-Control-Allow-Methods', 'GET, POST, DELETE, PUT');
   next();
 });
