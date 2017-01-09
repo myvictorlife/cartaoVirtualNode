@@ -13,9 +13,16 @@ app.set('superSecret', 'itsasecret') // Variável secret
 
 app.use(bodyParser.json());
 
-app.use(bodyParser.urlencoded({
+app.use(function(req, res, next){
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Headers", "X-Requested-With, Content-Type");
+    res.header('Access-Control-Allow-Methods', 'GET, POST, DELETE, PUT');
+    next();
+  },
+  bodyParser.urlencoded({
    extended: true
-}));
+  })
+);
 
 function BD() {
 
@@ -269,11 +276,4 @@ app.options(/\.*/, function (req, res, next) {
     res.header("Access-Control-Allow-Headers", "X-Requested-With, Content-Type");
     res.header('Access-Control-Allow-Methods', 'GET, POST, DELETE, PUT');
     res.send(200);
-});
-
-app.all('/*', function(req, res, next) {
-  res.header("Access-Control-Allow-Origin", "*");
-  res.header("Access-Control-Allow-Headers", "X-Requested-With, Content-Type");
-  res.header('Access-Control-Allow-Methods', 'GET, POST, DELETE, PUT');
-  next();
 });
