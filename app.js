@@ -248,7 +248,7 @@ apiRoutes.route('/users/:id') //inserimos middleware como primeiro parâmetro
 
 // Tags
 //***************************************************************************************************
-apiRoutes.route('/users/:id') //inserimos middleware como primeiro parâmetro
+apiRoutes.route('/tags') //inserimos middleware como primeiro parâmetro
     .get(middleware, function(req, res){
       console.log("tag get all");
       var objBD = BD();
@@ -277,19 +277,33 @@ apiRoutes.route('/tags/:id') //inserimos middleware como primeiro parâmetro
 });
 
 apiRoutes.route('/tags') //inserimos middleware como primeiro parâmetro
-    .get(middleware, function(req, res){
-  console.log("tag get post");
+    .post(middleware, function(req, res){
+   
+
    var objBD = BD();
+   var text = req.body.text;
    var post = {
-        name: req.body.name
+        text: text,
+        create_date: new Date()
     };
 
-    objBD.query('INSERT INTO cartao_virtual.Tag SET ?', post, function(error) {
+    objBD.query('SELECT count(*) as count FROM cartao_virtual.Tag t where upper(t.text) = upper(?)', text, function(error, result) {
+        console.log(result[0].count);
         if (error) {
-            console.log(error);
             res.json(error);
         } else {
-            res.json('Sucess');    
+            if(result[0].count >= 1){
+              res.json({error: 1, message: 'Tag já existente.'});
+            }else{
+              objBD.query('INSERT INTO cartao_virtual.Tag SET ?', post, function(error) {
+                  if (error) {
+                      console.log(error);
+                      res.json(error);
+                  } else {
+                      res.json({error: 0, message: 'Tag salva com sucesso.'});    
+                  }
+              });
+            }
         }
     });
 
