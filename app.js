@@ -1,18 +1,22 @@
-var express = require('express');
-var app = express();
-
-var bodyParser = require('body-parser');
-
-var mysql = require('mysql');
-
-var jwt = require('jsonwebtoken')
-
+// =======================
+// get the packages we need ============
+// =======================
+var express     = require('express');
+var app         = express();
+var bodyParser  = require('body-parser');
+var morgan      = require('morgan');
 var db = require('./db.js');
+var jwt    = require('jsonwebtoken'); // used to create, sign, and verify tokens
 
+// =======================
+// configuration =========
+// =======================
+var port = process.env.PORT || 8080; // used to create, sign, and verify tokens
 app.set('superSecret', 'itsasecret') // Variável secret
 
+// use body parser so we can get info from POST and/or URL parameters
+app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
-
 app.use(function(req, res, next){
     res.header("Access-Control-Allow-Origin", "*");
     res.header("Access-Control-Allow-Headers", "X-Requested-With, Content-Type");
@@ -24,6 +28,13 @@ app.use(function(req, res, next){
   })
 );
 
+// use morgan to log requests to the console
+app.use(morgan('dev'));
+
+
+// =======================
+// get connection bd =====
+// =======================
 function BD() {
 
     var connection = db.getConnection();
@@ -36,15 +47,24 @@ function BD() {
   return connection;
 }
 
-app.get('/', function(req, res){
-
-   res.end('Servidor ON!');
+// =======================
+// routes ================
+// =======================
+// basic route
+app.get('/', function(req, res) {
+    console.log("entrei");
+    res.send('Hello! The API is at http://localhost:' + port + '/api');
 });
 
-// route to authenticate a user (POST http://****:*****/api/authenticate)
-app.post('/api/authenticate', function(req, res){
+// API ROUTES -------------------
+// we'll get to these in a second
 
-  console.log("authenticate");
+// get an instance of the router for api routes
+var apiRoutes = express.Router(); 
+
+// TODO: route to authenticate a user (POST http://localhost:8080/api/authenticate)
+apiRoutes.post('/authenticate', function(req, res){
+
   var username = req.body.username;
   var password = req.body.password;
 
@@ -86,38 +106,44 @@ app.post('/api/authenticate', function(req, res){
   
 });
 
-// middleware para validar o Token
-// app.use((req, res, next) => {
-//   // Aqui vamos verificar o header da requisição, os parametros e o corpo da requisição, procurando o token
-//   var token = req.body.token || req.query.token || req.headers['x-access-token']
+// TODO: route middleware to verify a token
+var middleware = function(req, res, next){
+  console.log("app.use");
+  // Aqui vamos verificar o header da requisição, os parametros e o corpo da requisição, procurando o token
+  var token = req.body.token || req.query.token || req.headers['x-access-token']
 
-//   // Se o token existir
-//   if (token) {
-//     // Verificamos se o token está batendo com a nossa Secret
-//     jwt.verify(token, app.get('superSecret'), (err, decoded) => {
-//       if (err) {
-//         return res.json({
-//           success: false,
-//           message: 'A autenticação com o token falhou.'
-//         })
-//       } else {
-//         // Se o token estiver válido, então salvamos ele e liberamos o acesso, fazemos o trabalho do porteiro de um prédio aqui.
-//         req.decoded = decoded
-//         next()
-//       }
-//     })
-//   } else {
-//     // Se quem requisitou não informou o token, devolvemos um erro para ele.
-//     return res.status(403).send({
-//       success: false,
-//       message: 'Nenhum token foi informado.'
-//     })
-//   }
-// });
+  // Se o token existir
+  if (token) {
+    // Verificamos se o token está batendo com a nossa Secret
+    jwt.verify(token, app.get('superSecret'), (err, decoded) => {
+      if (err) {
+        return res.json({
+          success: false,
+          message: 'A autenticação com o token falhou.'
+        })
+      } else {
+        // Se o token estiver válido, então salvamos ele e liberamos o acesso, fazemos o trabalho do porteiro de um prédio aqui.
+        req.decoded = decoded
+        next()
+      }
+    })
+  } else {
+    // Se quem requisitou não informou o token, devolvemos um erro para ele.
+    return res.status(403).send({
+      success: false,
+      message: 'Nenhum token foi informado.'
+    })
+  }
+};
 
-// Uses
-//***************************************************************************************************
-app.get('/users', function(req, res){
+// route to show a random message (GET http://localhost:8080/api/)
+apiRoutes.get('/', function(req, res) {
+  res.json({ message: 'Welcome to the coolest API on earth!' });
+});
+
+// route to return all users (GET http://localhost:8080/api/users)
+apiRoutes.route('/users') //inserimos middleware como primeiro parâmetro
+    .get(middleware, function(req, res){
     console.log("users get all");
     var objBD = BD();
 
@@ -133,8 +159,8 @@ app.get('/users', function(req, res){
       });
 });
 
-
-app.get('/users/:id', function(req, res){
+apiRoutes.route('/users/:id') //inserimos middleware como primeiro parâmetro
+    .get(middleware, function(req, res){
   console.log("user get id");
    var objBD = BD();
    var id = req.param('id');
@@ -150,8 +176,9 @@ app.get('/users/:id', function(req, res){
 
 });
 
+apiRoutes.route('/users') //inserimos middleware como primeiro parâmetro
+    .get(middleware, function(req, res){
 
-app.post('/users', function(req, res){
   console.log("user post");
    var postUser = {
       username: req.body.username,
@@ -213,15 +240,16 @@ app.post('/users', function(req, res){
 
 });
 
-
-app.delete('/users/:id', function(req, res){
+apiRoutes.route('/users/:id') //inserimos middleware como primeiro parâmetro
+    .get(middleware, function(req, res){
   console.log("user delete");
    res.end('Servidor ON! delete');
 });
 
 // Tags
 //***************************************************************************************************
-app.get('/tags', function(req, res){
+apiRoutes.route('/users/:id') //inserimos middleware como primeiro parâmetro
+    .get(middleware, function(req, res){
       console.log("tag get all");
       var objBD = BD();
       objBD.query('SELECT * FROM cartao_virtual.Tag', function(err, rows) {
@@ -232,8 +260,8 @@ app.get('/tags', function(req, res){
       });
 });
 
-
-app.get('/tags/:id', function(req, res){
+apiRoutes.route('/tags/:id') //inserimos middleware como primeiro parâmetro
+    .get(middleware, function(req, res){
   console.log("tag get id");
    var objBD = BD();
    var id = req.param('id');
@@ -248,8 +276,8 @@ app.get('/tags/:id', function(req, res){
 
 });
 
-
-app.post('/tags', function(req, res){
+apiRoutes.route('/tags') //inserimos middleware como primeiro parâmetro
+    .get(middleware, function(req, res){
   console.log("tag get post");
    var objBD = BD();
    var post = {
@@ -265,17 +293,13 @@ app.post('/tags', function(req, res){
         }
     });
 
-});
+});  
 
+// apply the routes to our application with the prefix /api
+app.use('/api', apiRoutes);
 
-var port = process.env.PORT || 8080;
-app.listen(port, function(){
-	console.log('Listening on ' + port);
-});
-
-app.options(/\.*/, function (req, res, next) {
-    res.header("Access-Control-Allow-Origin", "*");
-    res.header("Access-Control-Allow-Headers", "X-Requested-With, Content-Type");
-    res.header('Access-Control-Allow-Methods', 'GET, POST, DELETE, PUT');
-    res.send(200);
-});
+// =======================
+// start the server ======
+// =======================
+app.listen(port);
+console.log('Magic happens at http://localhost:' + port);
