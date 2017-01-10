@@ -2,6 +2,7 @@
 // get the packages we need ============
 // =======================
 var express     = require('express');
+var Q     = require('q');
 var app         = express();
 var bodyParser  = require('body-parser');
 var morgan      = require('morgan');
@@ -278,36 +279,86 @@ apiRoutes.route('/tags/:id') //inserimos middleware como primeiro parâmetro
 
 apiRoutes.route('/tags') //inserimos middleware como primeiro parâmetro
     .post(middleware, function(req, res){
-   
 
-   var objBD = BD();
-   var text = req.body.text;
-   var post = {
-        text: text,
-        create_date: new Date()
-    };
+    var tags = req.body.tags;
+    if(tags !== undefined){
+      if(tags[0] === undefined){
 
-    objBD.query('SELECT count(*) as count FROM cartao_virtual.Tag t where upper(t.text) = upper(?)', text, function(error, result) {
-        console.log(result[0].count);
-        if (error) {
-            res.json(error);
-        } else {
-            if(result[0].count >= 1){
-              res.json({error: 1, message: 'Tag já existente.'});
-            }else{
-              objBD.query('INSERT INTO cartao_virtual.Tag SET ?', post, function(error) {
-                  if (error) {
-                      console.log(error);
-                      res.json(error);
-                  } else {
-                      res.json({error: 0, message: 'Tag salva com sucesso.'});    
-                  }
-              });
+        // saveTags(tags.text).then(function(result){
+
+        // });
+        // Promise.race(saveTags(tags.text)).then(function(result){
+        //   console.log("Final saveTags");
+        //     console.log(result);
+        //     res.json(result);
+        // });
+
+        // var result = saveTags(tags.text);
+        // console.log("Resultado final: " + result);
+
+        
+        // var promise = new Promise(function (resolve, reject) {
+        //   saveTags(tags.text);
+        //  })
+        //  .then(console.log("Terminei"));
+        // saveTags(tags.text, function(result){
+        //   console.log("Final saveTags");
+        //     console.log(result);
+        //     res.json(result);
+        // });
+        
+      
+
+      }else{
+        for (var i = 0; i < tags.length; i++) {
+            Q.fcall(saveTags(i, tags.text)).then(function(sucess){
+              console.log("Terminei")
+            }, function(error){
+              console.log("Terminei")
+            });
+
+        }  
+      }
+      
+    }
+  
+});
+
+
+function saveTags(i, text){
+  return new Promise(function(resolve, reject){
+      console.log("i: " + i + "  Entre saveTags: " + text);
+       var objBD = BD();
+       var post = {
+            text: text,
+            create_date: new Date()
+       };
+
+       objBD.query('SELECT count(*) as count FROM cartao_virtual.Tag t where upper(t.text) = upper(?)', text, function(error, result) {
+            console.log("Select");
+            if (error) {
+                reject(error);
+            } else {
+                if(result[0].count >= 1){
+                   console.log("Retornando: ");
+                   objBD.end();
+                   reject({error: 1, message: 'Tag já existente.'});
+                }else{
+                  objBD.query('INSERT INTO cartao_virtual.Tag SET ?', post, function(error) {
+                      if (error) {
+                          objBD.end();
+                          reject(error);
+                      } else {
+                          objBD.end();
+                          resolve({error: 0, message: 'Tag salva com sucesso.'});    
+                      }
+                  });
+                }
             }
-        }
-    });
-
-});  
+        });
+  });
+  
+}
 
 // apply the routes to our application with the prefix /api
 app.use('/api', apiRoutes);
