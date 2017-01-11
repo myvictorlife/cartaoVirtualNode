@@ -247,6 +247,45 @@ apiRoutes.post('/users', function(req, res){
 
 });
 
+apiRoutes.route('/users') //inserimos middleware como primeiro parâmetro
+    .put(middleware, function(req, res){
+  console.log("user put");
+
+  var username = req.body.username;
+  var card = req.body.profile;
+
+   var objBD = BD();
+  objBD.query('SELECT card_id FROM cartao_virtual.User u where u.username = ?', username, function(error, user) {
+        
+        if (error) {
+            objBD.end();
+            res.json(error);
+        } else {
+           if(user.length){
+
+              var userID = user[0].card_id;
+              card.updated_date = new Date();
+              card.user_updated = username;
+
+              var sql = "UPDATE cartao_virtual.Card SET ? WHERE id = ?"
+              objBD.query(sql, [card, userID], function(error, result) {
+                  if (error) {
+                    objBD.end();
+                    res.json(error);
+                  }else{
+                    res.json({error: '0', message: 'sucess'});  
+                  }
+              });
+           }else{
+            res.json({error: 'error'});
+           }
+        }
+    });
+  
+   //res.json({card: card});
+});
+
+
 apiRoutes.route('/users/:id') //inserimos middleware como primeiro parâmetro
     .get(middleware, function(req, res){
   console.log("user delete");
