@@ -292,6 +292,30 @@ apiRoutes.route('/users/:id') //inserimos middleware como primeiro parâmetro
    res.end('Servidor ON! delete');
 });
 
+// Password
+//***************************************************************************************************
+apiRoutes.route('/password') //inserimos middleware como primeiro parâmetro
+    .post(middleware, function(req, res){
+
+  console.log("password post");
+  
+  var username = req.body.username;
+  var password = {password: req.body.password};
+
+  var objBD = BD();
+
+  var sql = "UPDATE cartao_virtual.User SET ? WHERE username = ?"
+  objBD.query(sql, [password, username], function(error, result) {
+      if (error) {
+        objBD.end();
+        res.json({error: '1', message: 'Não foi possível trocar a senha.'});
+      }else{
+        res.json({error: '0', message: 'sucess'});  
+      }
+  });
+
+});
+
 // Tags
 //***************************************************************************************************
 apiRoutes.route('/tags') //inserimos middleware como primeiro parâmetro
