@@ -310,9 +310,11 @@ apiRoutes.route('/tags') //inserimos middleware como primeiro parâmetro
           })
 
           promiseTag.then(function (result) {
-
               for (var i in result) {
-                  tagsArray.pop(result[i].text);
+                  var index = tagsArray.indexOf(result[i].text);
+                  if(index != -1) {
+                      tagsArray.splice(index, 1);
+                  }
               }
 
               if (tagsArray.length != 0) {
