@@ -93,8 +93,10 @@ apiRoutes.post('/authenticate', function(req, res){
                 user[0].token = token;
 
                 // Retornamos um json dizendo que deu certo junto com o seu Token
+                objBD.end();
                 res.json(user[0]);
             } else{
+                objBD.end();
                 res.json({
                           success: false,
                           message: 'A autenticação falhou, o usuário não foi encontrado :C'
@@ -109,7 +111,7 @@ apiRoutes.post('/authenticate', function(req, res){
 
 // TODO: route middleware to verify a token
 var middleware = function(req, res, next){
-  console.log("app.use");
+
   // Aqui vamos verificar o header da requisição, os parametros e o corpo da requisição, procurando o token
   var token = req.body.token || req.query.token || req.headers['x-access-token']
 
@@ -152,9 +154,11 @@ apiRoutes.route('/users') //inserimos middleware como primeiro parâmetro
      console.log("/Users");
      objBD.query('SELECT * FROM cartao_virtual.User u, cartao_virtual.Card c where u.card_id = c.id', function(error, users) {
           if (error) {
+              objBD.end();
               res.json(error);
           } else {
             jsonUser = users;
+            objBD.end();
             res.json(jsonUser);
           }
       });
@@ -169,16 +173,17 @@ apiRoutes.route('/users/:id') //inserimos middleware como primeiro parâmetro
    objBD.query('SELECT * FROM cartao_virtual.User u, cartao_virtual.Card c where u.id = ? and u.card_id = c.id', id, function(error, user) {
         
         if (error) {
+            objBD.end();
             res.json(error);
         } else {
+            objBD.end();
             res.json(user);      
         }
     });
 
 });
 
-apiRoutes.route('/users') //inserimos middleware como primeiro parâmetro
-    .get(middleware, function(req, res){
+apiRoutes.post('/users', function(req, res){
 
   console.log("user post");
    var postUser = {
@@ -222,6 +227,7 @@ apiRoutes.route('/users') //inserimos middleware como primeiro parâmetro
           if (err) {
             return objBD.rollback(function() {
               console.log(err);
+              objBD.end();
               res.json({error:'Erro ao tentar inserir o usuario!'});
             });
           }  
@@ -230,6 +236,7 @@ apiRoutes.route('/users') //inserimos middleware como primeiro parâmetro
             if (err) {
               return objBD.rollback(function() {
                 console.log(err);
+                objBD.end();
                 res.json({error:'Erro ao tentar salvar o usuario!'});
               });
             }
@@ -254,10 +261,13 @@ apiRoutes.route('/tags') //inserimos middleware como primeiro parâmetro
       console.log("tag get all");
       var objBD = BD();
       objBD.query('SELECT * FROM cartao_virtual.Tag', function(err, rows) {
-        if (err)
+        if (err){
+          objBD.end();
           res.json(error);
-        else
+        } else{
+          objBD.end();
           res.json(rows);
+        }
       });
 });
 
@@ -269,8 +279,10 @@ apiRoutes.route('/tags/:id') //inserimos middleware como primeiro parâmetro
 
    objBD.query('SELECT * FROM cartao_virtual.Tag WHERE id = ?', id, function(error, user) {
         if (error) {
+            objBD.end();
             res.json(error);
         } else {
+            objBD.end();
             res.json(user);    
         }
     });
@@ -280,84 +292,105 @@ apiRoutes.route('/tags/:id') //inserimos middleware como primeiro parâmetro
 apiRoutes.route('/tags') //inserimos middleware como primeiro parâmetro
     .post(middleware, function(req, res){
    
-    // Tags recebida por parametro
     var tags = req.body.tags;
-    var objBD = BD();
+      if (tags !== undefined) {
 
-    function getTags(tags, cb) {
-        var result = [];
-        var arrayInsert = [];
-        var pending = tags.length;
+          var objBD = BD();
+          var tagsArray = [];
+          var tagsInsert = [];
 
-        for(var i in tags) {
-            objBD.query('SELECT * FROM cartao_virtual.Tag t where upper(t.text) = upper(?)', tags[i].text, function(err, stu){
-                if(stu.length !== 0){
-                  result.push(stu);  
-                }
-                if( 0 === --pending ) {
-                    cb(result, arrayInsert); //callback if all queries are processed
-                }
-            });
-        }
-    }
-
-    function contains(a, obj) {
-      for(var j in a){
-          if (a[j][0].text === obj) {
-              return true;
+          for (var i in tags) {
+              tagsArray.push(tags[i].text);
           }
-      }
-      return false;
-    }
 
-    
-    getTags(tags, function(result){
-        
-        var arrayInsert = [], arrayExist = [];
-        tags = req.body.tags;
+          var promiseTag = new Promise(function (resolve, reject) {
+              objBD.query("SELECT * FROM cartao_virtual.Tag t where t.text IN (" + "'" + tagsArray.join("','") + "')", function (error, result) {
+                  if (error) reject(Error("Erro ao salvar a tag"))
+                  resolve(result)
+              });
+          })
 
-        // Separar tags que já existe das que não existe
-        for(var j in tags){
-          if(contains(result, tags[j].text)){
-            arrayExist.push(tags[j]);
-          }else{
-            arrayInsert.push(tags[j].text);
-          }
-        }
-        
-        // Montando objeto para inserir Ex: [ ["teste1", new Date()], ["teste2", new Date()] ]
-        var tags = arrayInsert; 
-        var insertTag = [];
-        for (var i = 0; i < arrayInsert.length; i++) {
-          var object = [arrayInsert[i], new Date()];
-          insertTag.push(object);
-        }
+          promiseTag.then(function (result) {
 
-        // Existe tags para ser inseridas
-        if(insertTag.length > 0){
+              for (var i in result) {
+                  tagsArray.pop(result[i].text);
+              }
 
-            var sql = 'INSERT INTO cartao_virtual.Tag (text, create_date) VALUES ?';
-            objBD.query(sql, [insertTag], function(error, result) {
-              if (error) 
-                throw error;
-              
-              var rowIds = [], count = 0;
-              for (var i = result.insertId; i < result.insertId + result.affectedRows; i++) {
-                rowIds.push({id: i, text: insertTag[count++][0]});
-              };
+              if (tagsArray.length != 0) {
 
+                  for (var i in tagsArray) {
+                      tagsInsert.push([tagsArray[i], new Date()])
+                  }
+
+                  objBD.query("INSERT INTO cartao_virtual.Tag (text, create_date) VALUES ?", [tagsInsert], function (error, result) {
+                      if (error){
+                        objBD.end();
+                        return res.json(500, {"error": "Erro ao salvar cadastro"});
+                      }
+                      objBD.end();
+                  });
+              }
+          }, function (err) {
               objBD.end();
-              res.json(arrayExist.concat(rowIds));
-              
-            });
-        }else{
-          objBD.end();
-          console.log("Else");
-          res.json(arrayExist);
-        }
-          
+              return res.json(500, {"error": err})
+          });
+      }
+      return res.json({"success": true});
 
-    });    
+});
+
+// Cards
+//***************************************************************************************************
+apiRoutes.route('/cards') //inserimos middleware como primeiro parâmetro
+    .post(middleware, function(req, res){
+
+   console.log("cards post");
+   
+    var username = req.body.username;
+      
+    
+    var card = req.body.card;
+
+    card.created_date = new Date();
+    card.user_created = req.body.username;
+
+    res.json( card );
+    // var objBD = BD();
+    // objBD.beginTransaction(function(err) {
+    //   if (err) { throw err; }
+    //   objBD.query('INSERT INTO cartao_virtual.Card SET ?', postCard, function(err, result) {
+    //     if (err) {
+    //       return objBD.rollback(function() {
+    //         console.log(err);
+    //         res.json({error:'Erro ao tentar salvar o cartao!'});
+    //       });
+    //     }
+
+    //     console.log('Post ' + result.insertId + ' added'); 
+
+    //     postUser.card_id = result.insertId;
+
+    //     objBD.query('INSERT INTO cartao_virtual.User SET ?', postUser, function(err, result) {
+
+    //       if (err) {
+    //         return objBD.rollback(function() {
+    //           console.log(err);
+    //           res.json({error:'Erro ao tentar inserir o usuario!'});
+    //         });
+    //       }  
+    //       objBD.commit(function(err) {
+
+    //         if (err) {
+    //           return objBD.rollback(function() {
+    //             console.log(err);
+    //             res.json({error:'Erro ao tentar salvar o usuario!'});
+    //           });
+    //         }
+    //         res.json({success:'success!', id: result.insertId});
+    //       });
+    //     });
+    //   });
+    // });
 
 });
 
