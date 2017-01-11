@@ -300,19 +300,33 @@ apiRoutes.route('/password') //inserimos middleware como primeiro parâmetro
   console.log("password post");
   
   var username = req.body.username;
-  var password = {password: req.body.password};
+  var oldPassword = req.body.oldPassword;
+  var password = {password: req.body.newPassword};
 
   var objBD = BD();
 
   var sql = "UPDATE cartao_virtual.User SET ? WHERE username = ?"
-  objBD.query(sql, [password, username], function(error, result) {
-      if (error) {
-        objBD.end();
-        res.json({error: '1', message: 'Não foi possível trocar a senha.'});
-      }else{
-        res.json({error: '0', message: 'sucess'});  
-      }
-  });
+
+  objBD.query('SELECT password FROM cartao_virtual.User u where u.username = ?', username, function(error, user) {
+        
+        if (error) {
+            objBD.end();
+            res.json(error);
+        } else {
+          if(user[0].password === oldPassword){
+              objBD.query(sql, [password, username], function(error, result) {
+                if (error) {
+                  objBD.end();
+                  res.json({error: '1', message: 'Não foi possível trocar a senha.'});
+                }else{
+                  res.json({error: '0', message: 'sucess'});
+                }
+              });
+          }else {
+            res.json({error: '1', message: 'Senha atual incorreta.'});
+          }
+        }
+    });
 
 });
 
