@@ -3,7 +3,6 @@
 // =======================
 var express     = require('express');
 var app         = express();
-var q = require('q');
 var bodyParser  = require('body-parser');
 var morgan      = require('morgan');
 var db = require('./db.js');
