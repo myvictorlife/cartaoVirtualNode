@@ -2,8 +2,8 @@
 // get the packages we need ============
 // =======================
 var express     = require('express');
-var Q     = require('q');
 var app         = express();
+var q = require('q');
 var bodyParser  = require('body-parser');
 var morgan      = require('morgan');
 var db = require('./db.js');
@@ -276,89 +276,92 @@ apiRoutes.route('/tags/:id') //inserimos middleware como primeiro parâmetro
     });
 
 });
-
+   
 apiRoutes.route('/tags') //inserimos middleware como primeiro parâmetro
     .post(middleware, function(req, res){
-
+   
+    // Tags recebida por parametro
     var tags = req.body.tags;
-    if(tags !== undefined){
-      if(tags[0] === undefined){
+    var objBD = BD();
 
-        // saveTags(tags.text).then(function(result){
+    function getTags(tags, cb) {
+        var result = [];
+        var arrayInsert = [];
+        var pending = tags.length;
 
-        // });
-        // Promise.race(saveTags(tags.text)).then(function(result){
-        //   console.log("Final saveTags");
-        //     console.log(result);
-        //     res.json(result);
-        // });
-
-        // var result = saveTags(tags.text);
-        // console.log("Resultado final: " + result);
-
-        
-        // var promise = new Promise(function (resolve, reject) {
-        //   saveTags(tags.text);
-        //  })
-        //  .then(console.log("Terminei"));
-        // saveTags(tags.text, function(result){
-        //   console.log("Final saveTags");
-        //     console.log(result);
-        //     res.json(result);
-        // });
-        
-      
-
-      }else{
-        for (var i = 0; i < tags.length; i++) {
-            Q.fcall(saveTags(i, tags.text)).then(function(sucess){
-              console.log("Terminei")
-            }, function(error){
-              console.log("Terminei")
+        for(var i in tags) {
+            objBD.query('SELECT * FROM cartao_virtual.Tag t where upper(t.text) = upper(?)', tags[i].text, function(err, stu){
+                if(stu.length !== 0){
+                  result.push(stu);  
+                }
+                if( 0 === --pending ) {
+                    cb(result, arrayInsert); //callback if all queries are processed
+                }
             });
-
-        }  
-      }
-      
+        }
     }
-  
+
+    function contains(a, obj) {
+      for(var j in a){
+          if (a[j][0].text === obj) {
+              return true;
+          }
+      }
+      return false;
+    }
+
+    
+    getTags(tags, function(result){
+        
+        var arrayInsert = [], arrayExist = [];
+        tags = req.body.tags;
+
+        // Separar tags que já existe das que não existe
+        for(var j in tags){
+          if(contains(result, tags[j].text)){
+            arrayExist.push(tags[j]);
+          }else{
+            arrayInsert.push(tags[j].text);
+          }
+        }
+        
+        // Montando objeto para inserir Ex: [ ["teste1", new Date()], ["teste2", new Date()] ]
+        var tags = arrayInsert; 
+        var insertTag = [];
+        for (var i = 0; i < arrayInsert.length; i++) {
+          var object = [arrayInsert[i], new Date()];
+          insertTag.push(object);
+        }
+
+        // Existe tags para ser inseridas
+        if(insertTag.length > 0){
+
+            var sql = 'INSERT INTO cartao_virtual.Tag (text, create_date) VALUES ?';
+            objBD.query(sql, [insertTag], function(error, result) {
+              if (error) 
+                throw error;
+              
+              var rowIds = [], count = 0;
+              for (var i = result.insertId; i < result.insertId + result.affectedRows; i++) {
+                rowIds.push({id: i, text: insertTag[count++][0]});
+              };
+
+              objBD.end();
+              res.json(arrayExist.concat(rowIds));
+              
+            });
+        }else{
+          objBD.end();
+          console.log("Else");
+          res.json(arrayExist);
+        }
+          
+
+    });    
+
 });
 
 
-function saveTags(i, text){
-  return new Promise(function(resolve, reject){
-      console.log("i: " + i + "  Entre saveTags: " + text);
-       var objBD = BD();
-       var post = {
-            text: text,
-            create_date: new Date()
-       };
-
-       objBD.query('SELECT count(*) as count FROM cartao_virtual.Tag t where upper(t.text) = upper(?)', text, function(error, result) {
-            console.log("Select");
-            if (error) {
-                reject(error);
-            } else {
-                if(result[0].count >= 1){
-                   console.log("Retornando: ");
-                   objBD.end();
-                   reject({error: 1, message: 'Tag já existente.'});
-                }else{
-                  objBD.query('INSERT INTO cartao_virtual.Tag SET ?', post, function(error) {
-                      if (error) {
-                          objBD.end();
-                          reject(error);
-                      } else {
-                          objBD.end();
-                          resolve({error: 0, message: 'Tag salva com sucesso.'});    
-                      }
-                  });
-                }
-            }
-        });
-  });
-  
-}
 
 // apply the routes to our application with the prefix /api
 app.use('/api', apiRoutes);
