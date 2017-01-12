@@ -381,56 +381,80 @@ apiRoutes.route('/tags') //inserimos middleware como primeiro parâmetro
 
 // Cards
 //***************************************************************************************************
-apiRoutes.route('/cards') //inserimos middleware como primeiro parâmetro
-    .post(middleware, function(req, res){
+apiRoutes.route('/validate_card').post(middleware, function(req, res) {
+    var objBD = BD()
+    var error = false
+    var card = req.body.card
 
-   console.log("cards post");
-   
-    var username = req.body.username;
-      
-    
-    var card = req.body.card;
+    function similar_text(string, percent) {
+        if((!string) && (percent < 1) && (percent > 100)) return '';
 
-    card.created_date = new Date();
-    card.user_created = req.body.username;
+        var length = string.length * (percent/100);
+        return string.slice(0, Math.ceil(length));
+    }
 
-    res.json( card );
-    // var objBD = BD();
-    // objBD.beginTransaction(function(err) {
-    //   if (err) { throw err; }
-    //   objBD.query('INSERT INTO cartao_virtual.Card SET ?', postCard, function(err, result) {
-    //     if (err) {
-    //       return objBD.rollback(function() {
-    //         console.log(err);
-    //         res.json({error:'Erro ao tentar salvar o cartao!'});
-    //       });
-    //     }
+    function validCard() {
+        var validateCardPromise = new Promise(function (resolve, reject) {
+            var name = similar_text(card.name, 80);
+            var query = "SELECT * FROM cartao_virtual.Card where upper(name) LIKE upper(?) OR phone = ? " +
+                        "OR email = ? AND flag_updated = 1 AND flag_private = 0 LIMIT 1;"
+            objBD.query(query, [name + "%", card.phone, card.email], function (error, result) {
+                if (error) reject(Error(error))
+                resolve(result[0])
+            })
+        })
 
-    //     console.log('Post ' + result.insertId + ' added'); 
+        Promise.all([validateCardPromise]).then(function (result) {
+            console.log(result)
+        }).catch(function (err) {
+            error = true
+            console.log(err); // some coding error in handling happened
+        });
 
-    //     postUser.card_id = result.insertId;
+        if(error) return res.status(500).json({"message": "Erro na requisição"})
+        return res.json(card);
+    }
 
-    //     objBD.query('INSERT INTO cartao_virtual.User SET ?', postUser, function(err, result) {
 
-    //       if (err) {
-    //         return objBD.rollback(function() {
-    //           console.log(err);
-    //           res.json({error:'Erro ao tentar inserir o usuario!'});
-    //         });
-    //       }  
-    //       objBD.commit(function(err) {
+    if((!req.body.token) || (Object.keys(card).length === 0)) {
+        res.status(400).json({'message': "error"})
+    }
+    validCard()
+});
 
-    //         if (err) {
-    //           return objBD.rollback(function() {
-    //             console.log(err);
-    //             res.json({error:'Erro ao tentar salvar o usuario!'});
-    //           });
-    //         }
-    //         res.json({success:'success!', id: result.insertId});
-    //       });
-    //     });
-    //   });
-    // });
+apiRoutes.route('/cards').post(middleware, function(req, res){
+
+    var objBD = BD()
+    var user = req.body.user
+    var card = req.body.card
+
+    function saveCard() {
+        var validateUserPromise = new Promise(function (resolve, reject) {
+            objBD.query("SELECT COUNT(1) AS count FROM cartao_virtual.User where id= ? and username = ?", [user.id, user.username], function (error, result) {
+                if (error) reject(Error("Usuário não existe"))
+                resolve(result[0].count)
+            })
+        })
+
+        /*
+            var saveCard = new Promise(function (resolve, reject) {
+            });
+        */
+
+        Promise.all([validateUserPromise]).then(function (result) {
+            console.log(result[0]);
+        }).catch(function (err) {
+            console.log(err); // some coding error in handling happened
+        });
+        res.json(card);
+    }
+
+    if(Object.keys(card).length < 11) {
+        res.status(400).json({"message": "All data should be fulfilled"} );
+    } else {
+        card.created_date = new Date()
+        saveCard();
+    }
 
 });
 

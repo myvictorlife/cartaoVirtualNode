@@ -3,8 +3,9 @@ var mysql = require('mysql');
 exports.getConnection = function BD() {
     var connection = mysql.createConnection({
       host: '45.55.151.148',
-      user: 'root',
-      password: 'Fxj*()1010',
+      //  host: "localhost",
+        user: 'root',
+      password: '51518934',
       database: 'cartao_virtual',
       port: 3306
    });
